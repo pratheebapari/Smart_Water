@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Smart Water Distribution Dashboard</title>
+<style>
+:root{--bg:#0b0f14;--card:#121821;--line:#1f2937;--text:#e5e7eb;--mute:#8b98a9;--ok:#22c55e;--warn:#f59e0b;--bad:#ef4444;--acc:#38bdf8}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:"Segoe UI",system-ui,sans-serif;padding:28px;max-width:1200px;margin:auto}
+h1{font-size:22px;font-weight:600}
+.sub{color:var(--mute);font-size:13px;margin:4px 0 24px}
+h2{font-size:15px;font-weight:600;margin:24px 0 12px;color:var(--mute);text-transform:uppercase;letter-spacing:.06em}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:16px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:18px}
+.head{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px}
+.name{font-weight:600}
+.badge{font-size:11px;padding:3px 10px;border-radius:999px;border:1px solid}
+.Normal{color:var(--ok);border-color:var(--ok)}
+.Alert{color:var(--bad);border-color:var(--bad)}
+.row{display:flex;justify-content:space-between;font-size:13px;padding:6px 0;border-top:1px solid var(--line)}
+.row span:first-child{color:var(--mute)}
+.bar{height:6px;background:var(--line);border-radius:4px;overflow:hidden;margin:6px 0 10px}
+.bar div{height:100%}
+.alerts{display:flex;flex-direction:column;gap:8px}
+.alert{background:var(--card);border:1px solid var(--line);border-left:3px solid var(--bad);border-radius:8px;padding:12px 14px;font-size:13px}
+.none{color:var(--ok);font-size:13px}
+</style>
+</head>
+<body>
+<h1>Smart Water Distribution Dashboard</h1>
+<p class="sub">Simulated network data. Pressure range 2.0 - 5.0 bar. Reservoir alert below 25%.</p>
+<h2>Alerts</h2>
+<div class="alerts" id="alerts"></div>
+<h2>Distribution Zones</h2>
+<div class="grid" id="zones"></div>
+<script>
+const PRESSURE_MIN = 2.0;
+const PRESSURE_MAX = 5.0;
+const LEVEL_MIN = 25;
+
+const zones = [
+  { id: "Z1", name: "North Zone", level: 78, supply: 4200, pressure: 3.6, timing: "05:30 - 08:30" },
+  { id: "Z2", name: "South Zone", level: 64, supply: 3800, pressure: 3.1, timing: "06:00 - 09:00" },
+  { id: "Z3", name: "East Zone", level: 52, supply: 3100, pressure: 1.4, timing: "05:00 - 07:30" },
+  { id: "Z4", name: "West Zone", level: 71, supply: 4500, pressure: 5.8, timing: "06:30 - 09:30" },
+  { id: "Z5", name: "Central Zone", level: 18, supply: 5200, pressure: 3.9, timing: "05:00 - 08:00" },
+  { id: "Z6", name: "Industrial Zone", level: 83, supply: 6100, pressure: 4.4, timing: "04:30 - 07:00" }
+];
+
+function evaluate(zone) {
+  const issues = [];
+  if (zone.pressure < PRESSURE_MIN) issues.push("Low pressure " + zone.pressure + " bar");
+  if (zone.pressure > PRESSURE_MAX) issues.push("High pressure " + zone.pressure + " bar");
+  if (zone.level < LEVEL_MIN) issues.push("Reservoir level critical at " + zone.level + "%");
+  return issues;
+}
+
+function levelColor(level) {
+  if (level < LEVEL_MIN) return "var(--bad)";
+  if (level < 50) return "var(--warn)";
+  return "var(--acc)";
+}
+
+function render() {
+  const alertBox = document.getElementById("alerts");
+  const zoneBox = document.getElementById("zones");
+  let alertHtml = "";
+  let zoneHtml = "";
+
+  zones.forEach(zone => {
+    const issues = evaluate(zone);
+    const status = issues.length ? "Alert" : "Normal";
+    issues.forEach(issue => {
+      alertHtml += '<div class="alert"><b>' + zone.name + '</b> - ' + issue + '</div>';
+    });
+    zoneHtml += '<div class="card">' +
+      '<div class="head"><span class="name">' + zone.name + '</span><span class="badge ' + status + '">' + status + '</span></div>' +
+      '<div style="font-size:13px;color:var(--mute)">Reservoir level ' + zone.level + '%</div>' +
+      '<div class="bar"><div style="width:' + zone.level + '%;background:' + levelColor(zone.level) + '"></div></div>' +
+      '<div class="row"><span>Daily supply</span><span>' + zone.supply.toLocaleString() + ' kL</span></div>' +
+      '<div class="row"><span>Pipeline pressure</span><span>' + zone.pressure + ' bar</span></div>' +
+      '<div class="row"><span>Supply timings</span><span>' + zone.timing + '</span></div>' +
+      '<div class="row"><span>Network status</span><span>' + status + '</span></div>' +
+      '</div>';
+  });
+
+  alertBox.innerHTML = alertHtml || '<div class="none">All zones operating normally</div>';
+  zoneBox.innerHTML = zoneHtml;
+}
+
+render();
+</script>
+</body>
+</html>
