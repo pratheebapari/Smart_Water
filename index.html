@@ -9,50 +9,98 @@
 *{box-sizing:border-box;margin:0;padding:0}
 body{background:var(--bg);color:var(--text);font-family:"Segoe UI",system-ui,sans-serif;padding:28px;max-width:1200px;margin:auto}
 h1{font-size:22px;font-weight:600}
-.sub{color:var(--mute);font-size:13px;margin:4px 0 24px}
-h2{font-size:15px;font-weight:600;margin:24px 0 12px;color:var(--mute);text-transform:uppercase;letter-spacing:.06em}
+.sub{color:var(--mute);font-size:13px;margin:4px 0 20px}
+h2{font-size:15px;font-weight:600;margin:28px 0 12px;color:var(--mute);text-transform:uppercase;letter-spacing:.06em}
+.top{display:flex;justify-content:space-between;align-items:flex-end;flex-wrap:wrap;gap:12px}
+select{background:var(--card);color:var(--text);border:1px solid var(--line);border-radius:8px;padding:9px 12px;font-size:13px;outline:none}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px}
+.stat{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:18px}
+.stat small{color:var(--mute);font-size:12px}
+.stat div{font-size:24px;font-weight:600;margin-top:6px}
 .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:16px}
 .card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:18px}
 .head{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px}
 .name{font-weight:600}
 .badge{font-size:11px;padding:3px 10px;border-radius:999px;border:1px solid}
-.Normal{color:var(--ok);border-color:var(--ok)}
-.Alert{color:var(--bad);border-color:var(--bad)}
+.Normal,.Resolved{color:var(--ok);border-color:var(--ok)}
+.Alert,.High,.Open{color:var(--bad);border-color:var(--bad)}
+.Medium,.Assigned{color:var(--warn);border-color:var(--warn)}
+.Low{color:var(--acc);border-color:var(--acc)}
 .row{display:flex;justify-content:space-between;font-size:13px;padding:6px 0;border-top:1px solid var(--line)}
 .row span:first-child{color:var(--mute)}
 .bar{height:6px;background:var(--line);border-radius:4px;overflow:hidden;margin:6px 0 10px}
 .bar div{height:100%}
 .alerts{display:flex;flex-direction:column;gap:8px}
-.alert{background:var(--card);border:1px solid var(--line);border-left:3px solid var(--bad);border-radius:8px;padding:12px 14px;font-size:13px}
+.alert{background:var(--card);border:1px solid var(--line);border-left:3px solid var(--bad);border-radius:8px;padding:12px 14px;font-size:13px;display:flex;justify-content:space-between;gap:12px}
+.alert.Medium{border-left-color:var(--warn)}
+.alert.Low{border-left-color:var(--acc)}
 .none{color:var(--ok);font-size:13px}
+table{width:100%;border-collapse:collapse;background:var(--card);border:1px solid var(--line);border-radius:12px;overflow:hidden;font-size:13px}
+th,td{text-align:left;padding:12px 14px;border-bottom:1px solid var(--line)}
+th{color:var(--mute);font-weight:500;font-size:12px}
+tr:last-child td{border-bottom:none}
+.wrap{overflow-x:auto}
 </style>
 </head>
 <body>
-<h1>Smart Water Distribution Dashboard</h1>
-<p class="sub">Simulated network data. Pressure range 2.0 - 5.0 bar. Reservoir alert below 25%.</p>
-<h2>Alerts</h2>
+<div class="top">
+  <div>
+    <h1>Smart Water Distribution Dashboard</h1>
+    <p class="sub" style="margin-bottom:0">Simulated network data. Pressure range 2.0 - 5.0 bar. Reservoir alert below 25%.</p>
+  </div>
+  <select id="filter"></select>
+</div>
+
+<h2>Zone Analytics</h2>
+<div class="stats" id="stats"></div>
+
+<h2>Prioritized Maintenance Alerts</h2>
 <div class="alerts" id="alerts"></div>
+
 <h2>Distribution Zones</h2>
 <div class="grid" id="zones"></div>
+
+<h2>Leakage Incidents</h2>
+<div class="wrap"><table>
+  <thead><tr><th>Incident</th><th>Zone</th><th>Severity</th><th>Detected</th><th>Maintenance Status</th></tr></thead>
+  <tbody id="leaks"></tbody>
+</table></div>
+
 <script>
 const PRESSURE_MIN = 2.0;
 const PRESSURE_MAX = 5.0;
 const LEVEL_MIN = 25;
 
 const zones = [
-  { id: "Z1", name: "North Zone", level: 78, supply: 4200, pressure: 3.6, timing: "05:30 - 08:30" },
-  { id: "Z2", name: "South Zone", level: 64, supply: 3800, pressure: 3.1, timing: "06:00 - 09:00" },
-  { id: "Z3", name: "East Zone", level: 52, supply: 3100, pressure: 1.4, timing: "05:00 - 07:30" },
-  { id: "Z4", name: "West Zone", level: 71, supply: 4500, pressure: 5.8, timing: "06:30 - 09:30" },
-  { id: "Z5", name: "Central Zone", level: 18, supply: 5200, pressure: 3.9, timing: "05:00 - 08:00" },
-  { id: "Z6", name: "Industrial Zone", level: 83, supply: 6100, pressure: 4.4, timing: "04:30 - 07:00" }
+  { id: "Z1", name: "North Zone", level: 78, supply: 4200, consumption: 3950, pressure: 3.6, timing: "05:30 - 08:30" },
+  { id: "Z2", name: "South Zone", level: 64, supply: 3800, consumption: 3500, pressure: 3.1, timing: "06:00 - 09:00" },
+  { id: "Z3", name: "East Zone", level: 52, supply: 3100, consumption: 2600, pressure: 1.4, timing: "05:00 - 07:30" },
+  { id: "Z4", name: "West Zone", level: 71, supply: 4500, consumption: 4100, pressure: 5.8, timing: "06:30 - 09:30" },
+  { id: "Z5", name: "Central Zone", level: 18, supply: 5200, consumption: 5000, pressure: 3.9, timing: "05:00 - 08:00" },
+  { id: "Z6", name: "Industrial Zone", level: 83, supply: 6100, consumption: 5700, pressure: 4.4, timing: "04:30 - 07:00" }
 ];
+
+const leaks = [
+  { id: "LK-101", zone: "Z3", severity: "High", detected: "2026-10-22 03:40", status: "Open" },
+  { id: "LK-102", zone: "Z4", severity: "High", detected: "2026-10-22 04:15", status: "Assigned" },
+  { id: "LK-103", zone: "Z2", severity: "Medium", detected: "2026-10-21 22:05", status: "Assigned" },
+  { id: "LK-104", zone: "Z1", severity: "Low", detected: "2026-10-21 18:30", status: "Resolved" },
+  { id: "LK-105", zone: "Z5", severity: "Medium", detected: "2026-10-22 01:10", status: "Open" },
+  { id: "LK-106", zone: "Z6", severity: "Low", detected: "2026-10-20 14:20", status: "Resolved" }
+];
+
+const rank = { High: 3, Medium: 2, Low: 1 };
+let selected = "All";
+
+function zoneName(id) {
+  return zones.find(z => z.id === id).name;
+}
 
 function evaluate(zone) {
   const issues = [];
-  if (zone.pressure < PRESSURE_MIN) issues.push("Low pressure " + zone.pressure + " bar");
-  if (zone.pressure > PRESSURE_MAX) issues.push("High pressure " + zone.pressure + " bar");
-  if (zone.level < LEVEL_MIN) issues.push("Reservoir level critical at " + zone.level + "%");
+  if (zone.pressure < PRESSURE_MIN) issues.push({ priority: "High", text: "Low pressure " + zone.pressure + " bar" });
+  if (zone.pressure > PRESSURE_MAX) issues.push({ priority: "High", text: "High pressure " + zone.pressure + " bar" });
+  if (zone.level < LEVEL_MIN) issues.push({ priority: "High", text: "Reservoir level critical at " + zone.level + "%" });
   return issues;
 }
 
@@ -62,33 +110,65 @@ function levelColor(level) {
   return "var(--acc)";
 }
 
-function render() {
-  const alertBox = document.getElementById("alerts");
-  const zoneBox = document.getElementById("zones");
-  let alertHtml = "";
-  let zoneHtml = "";
+function setup() {
+  const select = document.getElementById("filter");
+  let html = '<option value="All">All Zones</option>';
+  zones.forEach(z => { html += '<option value="' + z.id + '">' + z.name + '</option>'; });
+  select.innerHTML = html;
+  select.addEventListener("change", e => { selected = e.target.value; render(); });
+}
 
-  zones.forEach(zone => {
-    const issues = evaluate(zone);
-    const status = issues.length ? "Alert" : "Normal";
-    issues.forEach(issue => {
-      alertHtml += '<div class="alert"><b>' + zone.name + '</b> - ' + issue + '</div>';
-    });
-    zoneHtml += '<div class="card">' +
+function render() {
+  const list = selected === "All" ? zones : zones.filter(z => z.id === selected);
+  const zoneLeaks = leaks.filter(l => selected === "All" || l.zone === selected);
+
+  const total = list.reduce((sum, z) => sum + z.supply, 0);
+  const top = list.reduce((a, b) => (b.consumption > a.consumption ? b : a));
+  const openLeaks = zoneLeaks.filter(l => l.status !== "Resolved").length;
+
+  document.getElementById("stats").innerHTML =
+    '<div class="stat"><small>Total daily water supplied</small><div>' + total.toLocaleString() + ' kL</div></div>' +
+    '<div class="stat"><small>Highest consumption zone</small><div>' + top.name + '</div><small>' + top.consumption.toLocaleString() + ' kL per day</small></div>' +
+    '<div class="stat"><small>Active leakage incidents</small><div>' + openLeaks + '</div></div>';
+
+  const alerts = [];
+  list.forEach(zone => {
+    evaluate(zone).forEach(issue => alerts.push({ priority: issue.priority, zone: zone.name, text: issue.text }));
+  });
+  zoneLeaks.filter(l => l.status !== "Resolved").forEach(l => {
+    alerts.push({ priority: l.severity, zone: zoneName(l.zone), text: l.id + " leakage - " + l.status });
+  });
+  alerts.sort((a, b) => rank[b.priority] - rank[a.priority]);
+
+  document.getElementById("alerts").innerHTML = alerts.length
+    ? alerts.map(a => '<div class="alert ' + a.priority + '"><span><b>' + a.zone + '</b> - ' + a.text + '</span><span class="badge ' + a.priority + '">' + a.priority + '</span></div>').join("")
+    : '<div class="none">No active alerts</div>';
+
+  document.getElementById("zones").innerHTML = list.map(zone => {
+    const status = evaluate(zone).length ? "Alert" : "Normal";
+    return '<div class="card">' +
       '<div class="head"><span class="name">' + zone.name + '</span><span class="badge ' + status + '">' + status + '</span></div>' +
       '<div style="font-size:13px;color:var(--mute)">Reservoir level ' + zone.level + '%</div>' +
       '<div class="bar"><div style="width:' + zone.level + '%;background:' + levelColor(zone.level) + '"></div></div>' +
       '<div class="row"><span>Daily supply</span><span>' + zone.supply.toLocaleString() + ' kL</span></div>' +
+      '<div class="row"><span>Estimated consumption</span><span>' + zone.consumption.toLocaleString() + ' kL</span></div>' +
       '<div class="row"><span>Pipeline pressure</span><span>' + zone.pressure + ' bar</span></div>' +
       '<div class="row"><span>Supply timings</span><span>' + zone.timing + '</span></div>' +
       '<div class="row"><span>Network status</span><span>' + status + '</span></div>' +
       '</div>';
-  });
+  }).join("");
 
-  alertBox.innerHTML = alertHtml || '<div class="none">All zones operating normally</div>';
-  zoneBox.innerHTML = zoneHtml;
+  document.getElementById("leaks").innerHTML = zoneLeaks.length
+    ? zoneLeaks.map(l =>
+        '<tr><td>' + l.id + '</td><td>' + zoneName(l.zone) + '</td>' +
+        '<td><span class="badge ' + l.severity + '">' + l.severity + '</span></td>' +
+        '<td>' + l.detected + '</td>' +
+        '<td><span class="badge ' + l.status + '">' + l.status + '</span></td></tr>'
+      ).join("")
+    : '<tr><td colspan="5">No incidents for this zone</td></tr>';
 }
 
+setup();
 render();
 </script>
 </body>
